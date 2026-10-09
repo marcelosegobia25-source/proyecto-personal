@@ -1,0 +1,572 @@
+TAREA 3: PARADIGMAS DE DESARROLLO DE SOFTWARE
+
+Nombre: ______________________________
+Materia: _____________________________
+Docente: _____________________________
+Fecha: _______________________________
+
+
+1. ¿QUÉ ES UN CICLO DE VIDA?
+
+El ciclo de vida del software es el recorrido completo de un sistema o producto, desde que se identifica una necesidad hasta que el software se retira. Incluye la concepción, planificación, análisis de requisitos, diseño, construcción, pruebas, instalación, operación, mantenimiento y retiro.
+
+Un modelo de ciclo de vida indica cómo se ordenan, repiten o superponen esas actividades. Por ejemplo, en cascada se realizan principalmente de manera secuencial; en un modelo incremental se repiten para producir entregas parciales. La norma ISO/IEC/IEEE 12207 establece procesos aplicables al ciclo de vida, pero no obliga a utilizar un modelo específico.
+
+
+2. ¿QUÉ ES UN PROCESO?
+
+Un proceso de software es un conjunto organizado de actividades relacionadas que transforma entradas en resultados. Define qué trabajo debe realizarse, quién participa, qué métodos y recursos se emplean y cuáles son los productos resultantes.
+
+Ejemplos: proceso de requisitos, diseño, programación, pruebas, gestión de configuración y mantenimiento. El proceso describe el trabajo; el modelo de ciclo de vida organiza ese trabajo a través del tiempo.
+
+
+3. ¿QUÉ ES UN PRODUCTO DE SOFTWARE?
+
+Un producto de software es un conjunto entregable creado para resolver una necesidad mediante programas y datos. No está formado únicamente por código: también puede incluir archivos de configuración, bases de datos, servicios, interfaces, instaladores, documentación, manuales, pruebas y materiales de soporte.
+
+Puede ser un producto genérico vendido a muchos usuarios, una solución construida a medida o una parte integrada en otro sistema.
+
+
+4. ACTIVIDADES QUE SE REALIZAN EN LOS CICLOS DE VIDA
+
+1) Concepción y viabilidad: identificar el problema, los interesados, los objetivos, las restricciones, los costos, los beneficios y los riesgos.
+
+2) Planificación: definir alcance, recursos, responsables, calendario, presupuesto, calidad, comunicaciones y gestión de riesgos.
+
+3) Ingeniería de requisitos: obtener, analizar, documentar, priorizar, validar y controlar las necesidades funcionales y no funcionales.
+
+4) Diseño y arquitectura: definir componentes, datos, interfaces, tecnologías, seguridad, infraestructura y decisiones de calidad.
+
+5) Construcción: programar o configurar la solución, revisar el código y realizar pruebas unitarias.
+
+6) Integración: unir módulos, componentes y servicios, y comprobar su interacción.
+
+7) Verificación y validación: comprobar que el producto fue construido correctamente y que satisface las necesidades del usuario.
+
+8) Despliegue y transición: instalar o publicar el sistema, migrar datos, capacitar usuarios y estabilizar la operación.
+
+9) Operación y mantenimiento: monitorear, corregir errores, adaptar el producto e incorporar mejoras.
+
+10) Retiro: migrar o conservar datos, reemplazar el sistema y finalizar su soporte de manera controlada.
+
+11) Actividades transversales: gestión del proyecto, documentación, seguridad, control de versiones, calidad, medición y mejora del proceso.
+
+
+5. FASES DE LOS CICLOS DE VIDA CONVENCIONALES
+
+1) Planificación y factibilidad: determina el problema, los objetivos, el alcance y si el proyecto es técnica y económicamente viable.
+
+2) Análisis de requisitos: establece qué debe hacer el sistema y qué condiciones de seguridad, rendimiento, disponibilidad y usabilidad debe cumplir.
+
+3) Diseño: convierte los requisitos en una arquitectura, modelos de datos, interfaces y componentes.
+
+4) Implementación: construye el software mediante programación, configuración o integración de componentes.
+
+5) Integración y pruebas: combina las partes y comprueba funcionalidad, calidad, rendimiento, seguridad y aceptación.
+
+6) Despliegue: instala o publica el producto, migra datos y prepara a los usuarios.
+
+7) Operación y mantenimiento: mantiene el producto funcionando y lo corrige, adapta o mejora.
+
+8) Retiro: descontinúa el producto cuando deja de ser útil, seguro o rentable.
+
+
+6. LISTA Y DESCRIPCIÓN DE PRODUCTOS DE SOFTWARE
+
+1) Software genérico: producto estándar ofrecido a muchos clientes, como un procesador de texto.
+
+2) Software a medida: solución creada para una organización o cliente específico.
+
+3) Software de sistema: administra el hardware y los servicios básicos; por ejemplo, un sistema operativo.
+
+4) Aplicación web: funciona principalmente por medio de un navegador y servidores conectados a una red.
+
+5) Aplicación móvil: se diseña para teléfonos, tabletas u otros dispositivos móviles.
+
+6) Software de escritorio: se instala y ejecuta en una computadora personal o estación de trabajo.
+
+7) Software embebido: forma parte de un dispositivo y controla funciones específicas.
+
+8) Software de tiempo real: debe responder dentro de límites temporales definidos.
+
+9) Software empresarial: apoya procesos organizacionales como ventas, logística, contabilidad o recursos humanos.
+
+10) Software científico y de ingeniería: se utiliza para cálculos, simulaciones, análisis o control técnico.
+
+11) Software como servicio o SaaS: es operado por un proveedor y consumido por Internet.
+
+12) Biblioteca, componente o API: proporciona funciones reutilizables para otros programas.
+
+13) Firmware: software almacenado en un dispositivo para controlar su funcionamiento básico.
+
+14) Videojuego o producto multimedia: integra interacción, gráficos, sonido, reglas y contenido digital.
+
+
+7. CARACTERÍSTICAS DE LOS PRODUCTOS DE SOFTWARE
+
+- Intangibles: no son objetos físicos; están representados por código, datos y documentación.
+- Se desarrollan, no se fabrican: el costo principal está en diseñarlos, construirlos y probarlos. Copiarlos cuesta muy poco.
+- Complejos: contienen reglas, estados, interfaces y dependencias difíciles de visualizar.
+- Modificables: pueden cambiar, pero una modificación puede afectar otras partes.
+- No se desgastan físicamente: envejecen por cambios tecnológicos, nuevas necesidades, vulnerabilidades y mantenimiento deficiente.
+- Deben ajustarse al entorno: dependen de personas, leyes, plataformas, estándares y otros sistemas.
+- Evolutivos: gran parte de su vida ocurre después de la primera entrega.
+- Reproducibles: una misma versión puede distribuirse muchas veces.
+- Dependientes de la calidad: deben ser correctos, confiables, seguros, eficientes, usables y mantenibles.
+- Sujetos a incertidumbre: los requisitos, la tecnología y el entorno pueden cambiar durante el proyecto.
+
+
+8. CICLO DE VIDA CLÁSICO O CASCADA
+
+a) Definición y características
+
+Es un modelo predictivo que divide el proyecto en fases principalmente secuenciales. Cada fase produce documentos o entregables que sirven de entrada a la siguiente. Se caracteriza por planificación inicial, requisitos relativamente estables, documentación formal, hitos de aprobación y control estricto de cambios.
+
+b) Gráfico
+
+[Requisitos] -> [Diseño] -> [Implementación] -> [Pruebas] -> [Despliegue] -> [Mantenimiento]
+
+c) Fases
+
+1) Requisitos.
+2) Análisis y diseño.
+3) Implementación.
+4) Integración y pruebas.
+5) Despliegue.
+6) Mantenimiento.
+
+d) Ventajas y desventajas
+
+Ventajas: es fácil de entender; facilita la planificación, la trazabilidad y los contratos de alcance fijo; funciona bien cuando los requisitos son estables.
+
+Desventajas: la retroalimentación y el software funcional aparecen tarde; los cambios son costosos; puede descubrir demasiado tarde que la solución no satisface al usuario.
+
+e) Ejemplo y tiempo
+
+Ejemplo: sistema de nómina basado en reglas estables y aprobación formal. Tiempo orientativo: de 6 a 12 meses para un sistema mediano; puede aumentar por integraciones o certificaciones.
+
+
+9. MODELO ESPIRAL
+
+a) Definición y características
+
+Es un modelo iterativo dirigido por riesgos. El proyecto avanza en vueltas sucesivas. En cada vuelta se determinan objetivos, se analizan alternativas y riesgos, se desarrolla o verifica una parte de la solución y se planifica el siguiente ciclo. Utiliza prototipos cuando ayudan a reducir incertidumbre.
+
+b) Gráfico
+
+                 +------------------------------------------+
+                 |                                          |
+[Objetivos] -> [Riesgos] -> [Desarrollo y pruebas] -> [Planificación]
+     ^                                                       |
+     +-------------------------------------------------------+
+                    Nueva vuelta de la espiral
+
+c) Fases
+
+1) Definir objetivos, alternativas y restricciones.
+2) Identificar, evaluar y reducir riesgos.
+3) Desarrollar y verificar la solución del ciclo.
+4) Evaluar resultados y planificar la siguiente vuelta.
+
+d) Ventajas y desventajas
+
+Ventajas: reduce riesgos críticos de manera temprana; acepta cambios; combina prototipos, incrementos y planificación; es útil para proyectos grandes o innovadores.
+
+Desventajas: requiere experiencia en análisis de riesgos; su gestión puede ser costosa; puede prolongarse si no existen criterios de salida claros.
+
+e) Ejemplo y tiempo
+
+Ejemplo: plataforma bancaria con migración de datos, alta seguridad y tecnología nueva. Tiempo orientativo: de 12 a 36 meses, con vueltas de uno a tres meses.
+
+
+10. TÉCNICAS DE CUARTA GENERACIÓN
+
+a) Definición y características
+
+Las técnicas de cuarta generación, también llamadas 4GT, utilizan herramientas de alto nivel para expresar qué debe hacer el sistema con menos programación manual. Incluyen lenguajes declarativos, generadores de código, herramientas CASE, creadores de reportes y plataformas low-code. Se caracterizan por automatización, desarrollo visual, reutilización y dependencia de herramientas.
+
+b) Gráfico
+
+[Requisitos] -> [Diseño de alto nivel] -> [Generación o configuración] -> [Pruebas] -> [Entrega]
+
+c) Fases
+
+1) Recopilar requisitos.
+2) Diseñar la solución a alto nivel.
+3) Configurar o generar la aplicación.
+4) Probar y ajustar.
+5) Desplegar.
+
+d) Ventajas y desventajas
+
+Ventajas: acelera aplicaciones de datos; reduce el código manual; facilita prototipos y cambios de interfaz.
+
+Desventajas: puede existir dependencia del proveedor; hay límites de personalización o rendimiento; el código generado puede ser difícil de mantener.
+
+e) Ejemplo y tiempo
+
+Ejemplo: aplicación interna de inventario con formularios, reportes y aprobaciones. Tiempo orientativo: de 4 a 12 semanas.
+
+
+11. MODELO DE PROTOTIPOS
+
+a) Definición y características
+
+Construye una versión parcial o simplificada del producto para aclarar requisitos y recibir retroalimentación. Un prototipo desechable se elimina después del aprendizaje; uno evolutivo se mejora hasta convertirse en el producto. Requiere participación frecuente de usuarios e iteraciones rápidas.
+
+b) Gráfico
+
+[Necesidad inicial] -> [Diseño rápido] -> [Prototipo] -> [Evaluación del usuario]
+        ^                                                        |
+        +-------------------- [Refinamiento] <-------------------+
+                                   |
+                                   v
+                         [Producto definitivo]
+
+c) Fases
+
+1) Identificar necesidades iniciales.
+2) Realizar diseño rápido.
+3) Construir el prototipo.
+4) Obtener evaluación del usuario.
+5) Refinar requisitos y prototipo.
+6) Desarrollar el producto definitivo.
+
+d) Ventajas y desventajas
+
+Ventajas: reduce ambigüedades; detecta problemas de usabilidad temprano; aumenta la participación y aceptación del usuario.
+
+Desventajas: el usuario puede confundirlo con un producto terminado; puede conservarse una arquitectura improvisada; las iteraciones pueden continuar sin límite.
+
+e) Ejemplo y tiempo
+
+Ejemplo: aplicación móvil de atención al cliente cuyo flujo debe validarse con usuarios. Tiempo: de 1 a 4 semanas por prototipo y de 3 a 8 meses para un producto robusto.
+
+
+12. PUDS: PROCESO UNIFICADO DE DESARROLLO DE SOFTWARE
+
+a) Definición y características
+
+El Proceso Unificado es iterativo e incremental, dirigido por casos de uso, centrado en arquitectura y orientado a riesgos. RUP es una implementación conocida. Cada fase puede contener varias iteraciones y en todas se realizan, con distinta intensidad, requisitos, diseño, implementación, pruebas y gestión.
+
+b) Gráfico
+
+[Inicio] -> [Elaboración] -> [Construcción] -> [Transición]
+   |             |                 |                |
+ iteraciones   iteraciones       iteraciones      entrega
+
+c) Fases
+
+1) Inicio: definir visión, alcance, viabilidad, interesados y riesgos principales.
+2) Elaboración: estabilizar requisitos importantes y validar la arquitectura.
+3) Construcción: desarrollar el producto en incrementos.
+4) Transición: desplegar, capacitar, corregir y lograr la aceptación.
+
+d) Ventajas y desventajas
+
+Ventajas: combina control e iteración; reduce riesgos arquitectónicos temprano; produce trazabilidad y artefactos claros.
+
+Desventajas: puede volverse burocrático; requiere aprendizaje; demasiados artefactos perjudican a equipos pequeños si no se adapta.
+
+e) Ejemplo y tiempo
+
+Ejemplo: sistema universitario modular con varios equipos e integraciones. Tiempo: de 8 a 18 meses, con iteraciones de 2 a 6 semanas.
+
+
+13. SCRUM Y MANIFIESTO ÁGIL
+
+a) Definición y características
+
+El Manifiesto Ágil valora más a los individuos y sus interacciones, el software funcionando, la colaboración con el cliente y la respuesta al cambio, sin eliminar el valor de procesos, documentación, contratos o planes.
+
+Scrum es un framework ligero para generar valor frente a problemas complejos. Trabaja mediante Sprints de un mes o menos. El equipo Scrum incluye Product Owner, Scrum Master y Developers. Sus artefactos principales son Product Backlog, Sprint Backlog e Incremento.
+
+b) Gráfico
+
+[Product Backlog] -> [Sprint Planning] -> [Sprint y Daily Scrum] -> [Incremento]
+       ^                                                              |
+       +------ [Sprint Review y Retrospective: inspeccionar y adaptar] -+
+
+c) Fases o eventos
+
+1) Definir visión y ordenar el Product Backlog.
+2) Realizar Sprint Planning.
+3) Ejecutar el trabajo del Sprint y Daily Scrum.
+4) Crear un incremento que cumpla la Definición de Terminado.
+5) Realizar Sprint Review.
+6) Realizar Sprint Retrospective.
+7) Iniciar el siguiente Sprint.
+
+d) Ventajas y desventajas
+
+Ventajas: entrega valor y obtiene retroalimentación con frecuencia; permite adaptar prioridades; aumenta la transparencia.
+
+Desventajas: necesita participación real del Product Owner; las dependencias externas rígidas dificultan los Sprints; Scrum no reemplaza las prácticas técnicas, la arquitectura ni la gestión organizacional.
+
+e) Ejemplo y tiempo
+
+Ejemplo: producto web de comercio electrónico con prioridades cambiantes. Tiempo: MVP de 2 a 4 meses; evolución continua en Sprints de 1 a 4 semanas.
+
+
+14. DRA: DESARROLLO RÁPIDO DE APLICACIONES
+
+a) Definición y características
+
+DRA o RAD es un enfoque incremental y de tiempo limitado que combina prototipado, reutilización, herramientas de alta productividad, talleres con usuarios y construcción paralela de módulos. Busca entregar una aplicación funcional rápidamente.
+
+b) Gráfico
+
+[Negocio] -> [Datos] -> [Procesos] -> [Generación de aplicación] -> [Pruebas y entrega]
+                                  Equipos y módulos en paralelo
+
+c) Fases
+
+1) Modelado del negocio.
+2) Modelado de datos.
+3) Modelado del proceso.
+4) Generación de la aplicación.
+5) Pruebas y entrega.
+
+d) Ventajas y desventajas
+
+Ventajas: disminuye el tiempo de salida; da visibilidad temprana; aprovecha herramientas y componentes reutilizables.
+
+Desventajas: necesita usuarios disponibles y personal experto; no es ideal para sistemas de altísimo riesgo o rendimiento; la integración de módulos paralelos puede ser difícil.
+
+e) Ejemplo y tiempo
+
+Ejemplo: portal administrativo modular para una empresa mediana. Tiempo orientativo: de 60 a 120 días para una primera versión de alcance controlado.
+
+
+15. MODELO INCREMENTAL
+
+a) Definición y características
+
+El producto se desarrolla y entrega en partes funcionales. Cada incremento añade capacidades a una base operativa y realiza su propio análisis, diseño, construcción y pruebas. Las funciones se priorizan por valor, riesgo y dependencia.
+
+b) Gráfico
+
+[Plan general]
+     |
+     +-> [Incremento 1] -> Entrega básica
+     +-> [Incremento 2] -> Más funciones
+     +-> [Incremento 3] -> Producto ampliado
+
+c) Fases
+
+1) Elaborar el plan general.
+2) Priorizar el incremento.
+3) Analizar y diseñar sus funciones.
+4) Construir y probar.
+5) Entregar y evaluar.
+6) Repetir con el siguiente incremento.
+
+d) Ventajas y desventajas
+
+Ventajas: entrega valor temprano; reduce el riesgo de una única entrega final; permite aprender y cambiar prioridades.
+
+Desventajas: exige buena modularización; puede acumular deuda técnica; cada entrega aumenta el trabajo de integración y regresión.
+
+e) Ejemplo y tiempo
+
+Ejemplo: sistema de ventas que entrega primero clientes, después catálogo, pedidos, pagos y reportes. Tiempo: primer incremento en 4 a 8 semanas y solución mediana en 4 a 10 meses.
+
+
+16. DESARROLLO BASADO EN COMPONENTES
+
+a) Definición y características
+
+Construye sistemas seleccionando, evaluando, adaptando e integrando componentes reutilizables propios, comerciales o de código abierto. La arquitectura, los contratos de interfaz y la decisión entre construir, comprar o reutilizar son fundamentales.
+
+b) Gráfico
+
+[Requisitos] -> [Arquitectura] -> [Buscar y evaluar componentes]
+                                      |
+                                      v
+                  [Adaptar] -> [Integrar] -> [Probar] -> [Operar]
+
+c) Fases
+
+1) Analizar requisitos y diseñar la arquitectura.
+2) Buscar componentes.
+3) Evaluar y seleccionar.
+4) Adaptar o envolver componentes.
+5) Integrar.
+6) Probar, desplegar y mantener.
+
+d) Ventajas y desventajas
+
+Ventajas: puede disminuir tiempo y costo; aprovecha componentes maduros; favorece la estandarización.
+
+Desventajas: crea dependencia de terceros; pueden existir incompatibilidades y vulnerabilidades; los requisitos deben negociarse con las capacidades disponibles.
+
+e) Ejemplo y tiempo
+
+Ejemplo: plataforma empresarial que integra servicios de identidad, pagos, mensajería y analítica. Tiempo: de 3 a 9 meses, según la dificultad de integración.
+
+
+17. PROGRAMACIÓN EXTREMA (XP)
+
+a) Definición y características
+
+XP es un método ágil que combina ciclos breves con prácticas técnicas rigurosas. Emplea historias de usuario, entregas pequeñas, programación en parejas, desarrollo guiado por pruebas, integración continua, refactorización, propiedad colectiva del código y diseño simple.
+
+b) Gráfico
+
+[Historias] -> [Planificación] -> [Diseño simple] -> [Código y pruebas] -> [Entrega]
+     ^                                                                  |
+     +------------------- [Retroalimentación] ---------------------------+
+
+c) Fases
+
+1) Exploración.
+2) Planificación de la entrega.
+3) Iteraciones de desarrollo.
+4) Preparación para producción.
+5) Mantenimiento.
+6) Cierre.
+
+d) Ventajas y desventajas
+
+Ventajas: mejora la calidad técnica; obtiene retroalimentación rápida; facilita el cambio y comparte conocimiento.
+
+Desventajas: exige mucha disciplina y colaboración; necesita adaptación en equipos distribuidos; la documentación mínima puede ser insuficiente en proyectos regulados.
+
+e) Ejemplo y tiempo
+
+Ejemplo: servicio SaaS con requisitos variables y un equipo de 4 a 10 desarrolladores. Tiempo: primera entrega en 1 a 3 meses e iteraciones de 1 a 2 semanas.
+
+
+18. MODELO WIN WIN
+
+a) Definición y características
+
+Win Win amplía el modelo espiral con negociación entre los interesados. Se identifican participantes, condiciones de ganancia, conflictos, opciones y acuerdos mutuamente satisfactorios antes de comprometer una solución. Después se analizan riesgos y se desarrolla el siguiente resultado.
+
+b) Gráfico
+
+[Interesados] -> [Condiciones de ganancia] -> [Conflictos y opciones]
+       ^                                             |
+       |                                             v
+[Plan siguiente] <- [Desarrollo y riesgos] <- [Acuerdo Win Win]
+
+c) Fases
+
+1) Identificar interesados.
+2) Establecer condiciones de ganancia.
+3) Detectar conflictos y opciones.
+4) Negociar acuerdos.
+5) Analizar riesgos.
+6) Desarrollar, validar y planificar la siguiente vuelta.
+
+d) Ventajas y desventajas
+
+Ventajas: reduce conflictos tardíos; hace visibles las prioridades; aumenta el compromiso de los participantes.
+
+Desventajas: la negociación requiere tiempo; puede estancarse cuando hay poder desigual; necesita facilitación y documentación cuidadosas.
+
+e) Ejemplo y tiempo
+
+Ejemplo: sistema público que involucra ciudadanía, entidad contratante, proveedor y regulador. Tiempo: de 12 a 24 meses; la negociación inicial puede requerir de 2 a 6 semanas.
+
+
+19. MODELO RECURSIVO PARALELO
+
+a) Definición y características
+
+No constituye un estándar único con una definición universal. Describe una estrategia en la que las actividades se aplican recursivamente al sistema y a sus subsistemas, mientras los equipos desarrollan partes independientes en paralelo. Requiere descomposición arquitectónica, contratos de interfaz, coordinación e integración frecuentes.
+
+b) Gráfico
+
+                         [Sistema]
+                  /          |          \
+          [Subsistema A] [Subsistema B] [Subsistema C]
+            análisis         diseño       construcción
+                  \          |          /
+                      [Integración]
+                           |
+                      [Verificación]
+                           |
+                 [Nueva descomposición]
+
+c) Fases
+
+1) Descomponer la arquitectura.
+2) Definir interfaces, dependencias y planes.
+3) Analizar, diseñar y desarrollar subsistemas en paralelo.
+4) Sincronizar e integrar resultados.
+5) Verificar el sistema completo.
+6) Repetir el proceso para otro nivel o incremento.
+
+d) Ventajas y desventajas
+
+Ventajas: puede reducir el calendario; permite que varios equipos avancen simultáneamente; escala mediante subsistemas.
+
+Desventajas: exige mucha coordinación; puede generar interfaces incompatibles; las dependencias o una arquitectura inestable producen bloqueos. El paralelismo reduce tiempo calendario, pero no necesariamente el esfuerzo total.
+
+e) Ejemplo y tiempo
+
+Ejemplo: sistema de telecomunicaciones desarrollado por equipos de red, facturación, portal y analítica. Tiempo: de 9 a 24 meses, según tamaño y dependencias.
+
+
+20. FRAMEWORK
+
+a) Definición y características
+
+Un framework es una estructura reutilizable que proporciona principios, roles, prácticas, convenciones, artefactos o componentes. Guía el trabajo sin definir necesariamente todos los detalles. Scrum es un framework de gestión de productos; Spring y .NET son frameworks tecnológicos. Por ello, un framework no es siempre un modelo de ciclo de vida.
+
+b) Gráfico
+
+[Seleccionar framework] -> [Adaptar o configurar] -> [Desarrollar]
+          ^                                             |
+          |                                             v
+   [Actualizar y mejorar] <- [Operar] <- [Probar e integrar]
+
+c) Fases generales de adopción
+
+1) Seleccionar y evaluar el framework.
+2) Configurarlo o adaptarlo al contexto.
+3) Diseñar la solución sobre su estructura.
+4) Implementar.
+5) Probar e integrar.
+6) Desplegar, actualizar y evolucionar.
+
+d) Ventajas y desventajas
+
+Ventajas: ofrece consistencia y reutilización; acelera decisiones repetitivas; facilita prácticas comunes y el uso de un ecosistema.
+
+Desventajas: requiere aprendizaje; puede crear dependencia; las actualizaciones pueden romper compatibilidad; el uso rígido puede causar sobreingeniería.
+
+e) Ejemplo y tiempo
+
+Ejemplo: API empresarial creada con Spring Boot y proyecto gestionado mediante Scrum. Tiempo: MVP de 2 a 4 meses, además de 1 a 3 semanas iniciales de adopción y configuración.
+
+
+CONCLUSIÓN
+
+No existe un paradigma que sea el mejor para todos los proyectos. Cascada resulta apropiado cuando el alcance es estable y se necesita control documental. El modelo espiral y Win Win son útiles cuando existen riesgos o muchos intereses en conflicto. Los prototipos ayudan a descubrir necesidades. Los modelos incremental, Scrum y XP favorecen entregas frecuentes y adaptación. DRA y las técnicas de cuarta generación buscan rapidez. El desarrollo basado en componentes aprovecha soluciones existentes. PUDS combina arquitectura, riesgos e iteraciones. El enfoque recursivo paralelo distribuye el trabajo entre subsistemas y un framework aporta una estructura reutilizable.
+
+En proyectos reales es común combinar enfoques. Por ejemplo, una organización puede usar fases de aprobación, construir incrementos mediante Scrum, aplicar prácticas técnicas de XP e integrar componentes existentes. La elección debe considerar los riesgos, la estabilidad de los requisitos, la disponibilidad de usuarios, el tamaño del equipo, la arquitectura y el nivel de calidad requerido.
+
+
+FUENTES CONSULTADAS
+
+1. ISO/IEC/IEEE 12207:2026. Systems and software engineering - Software life cycle processes. https://www.iso.org/standard/90219.html
+
+2. IEEE Computer Society. Guide to the Software Engineering Body of Knowledge, SWEBOK. https://www.computer.org/education/bodies-of-knowledge/software-engineering
+
+3. Beck, K. y otros. Manifiesto por el Desarrollo Ágil de Software. https://agilemanifesto.org/iso/es/manifesto.html
+
+4. Schwaber, K. y Sutherland, J. La Guía Scrum, 2020. https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-Spanish-European.pdf
+
+5. IBM Rational. Rational Unified Process: Best Practices for Software Development Teams. https://public.dhe.ibm.com/software/rational/web/whitepapers/2003/rup_bestpractices.pdf
+
+6. Boehm, B. A Spiral Model of Software Development and Enhancement. Computer, 1988.
+
+7. Beck, K. y Andres, C. Extreme Programming Explained: Embrace Change. Addison-Wesley, 2004.
+
+8. Martin, J. Rapid Application Development. Macmillan, 1991.
+
+9. Clements, P. From Subroutines to Subsystems: Component-Based Software Development. Software Engineering Institute, 1995.
+
+10. Carney, D.; Place, P.; y Oberndorf, T. A Basis for an Assembly Process for COTS-Based Systems. Software Engineering Institute, 2003.
