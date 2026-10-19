@@ -1,53 +1,703 @@
 import { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useLocalSearchParams,useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { activityColors, AppScreen, Card, PageHeader, palette } from '@/components/AppScreen';
-import { useAppNotice } from '@/components/AppNotice';
-import { attachNotification, countScheduleConflicts, createFlexibleActivity, createPlannedActivity,getNotificationPreferences,type DayScheduleRule } from '@/lib/database';
-import { schedulePriorityNotifications } from '@/lib/notifications';
-import {hasFocusAccess,requestFocusAccess,syncFocusSchedules} from '@/lib/focusMode';
+
+import { activityColors, AppScreen, Card, PageHeader, palette } from '@core/ui/AppScreen';
+import { useAppNotice } from '@core/ui/AppNotice';
+import { useAppTheme } from '@core/theme';
+import { schedulePriorityNotifications } from '@core/notifications';
+import { hasFocusAccess, requestFocusAccess, syncFocusSchedules } from '@core/focus-mode';
+
+import {
+  attachNotificationUseCase,
+  createFlexibleActivityUseCase,
+  createPlannedActivityUseCase,
+} from '@modules/activities';
+import { countScheduleConflictsUseCase } from '@modules/calendar';
+import { getNotificationPreferencesUseCase } from '@modules/settings';
+
+const QUICK_DURATIONS = [
+  { label: '30 min', value: '30' },
+  { label: '45 min', value: '45' },
+  { label: '1 h', value: '60' },
+  { label: '1 h 30', value: '90' },
+  { label: '2 h', value: '120' },
+];
+
+const WEEKDAY_NAMES = [
+  { day: 1, label: 'L' },
+  { day: 2, label: 'M' },
+  { day: 3, label: 'M' },
+  { day: 4, label: 'J' },
+  { day: 5, label: 'V' },
+  { day: 6, label: 'S' },
+  { day: 0, label: 'D' },
+];
 
 export default function NewActivityScreen() {
-  const db=useSQLiteContext(); const router=useRouter(); const {showNotice}=useAppNotice();
-  const params=useLocalSearchParams<{startsAt?:string;endsAt?:string}>();
-  const initial=useMemo(()=>{const parsed=params.startsAt?new Date(params.startsAt):new Date(Date.now()+60*60_000);const d=Number.isNaN(parsed.getTime())?new Date(Date.now()+60*60_000):parsed;d.setSeconds(0,0);return d},[params.startsAt]);
-  const [title,setTitle]=useState(''); const [description,setDescription]=useState(''); const [scheduled,setScheduled]=useState(true);
-  const [dateTime,setDateTime]=useState(initial); const [endDate,setEndDate]=useState(()=>{const d=new Date(initial);d.setHours(23,59,59,999);return d}); const [picker,setPicker]=useState<'date'|'time'|'end'|null>(null);
-  const [duration,setDuration]=useState(()=>params.endsAt?String(Math.max(5,Math.round((new Date(params.endsAt).getTime()-initial.getTime())/60000))):'60'); const [recurrence,setRecurrence]=useState<'once'|'daily'|'weekly'>('once');
-  const [weekdays,setWeekdays]=useState<number[]>([initial.getDay()]);const [priority,setPriority]=useState<'low'|'normal'|'high'|'critical'>('normal');const [color,setColor]=useState('#2563EB');
-  const [dayRules,setDayRules]=useState<Record<number,DayScheduleRule>>({});const [rulePicker,setRulePicker]=useState<number|null>(null);
-  const [preparation,setPreparation]=useState('0');const [travel,setTravel]=useState('0');const [buffer,setBuffer]=useState('0');const [returnTravel,setReturnTravel]=useState('0');const [saving,setSaving]=useState(false);
-  const [focusMode,setFocusMode]=useState(false);
-  const dateLabel=new Intl.DateTimeFormat('es-BO',{weekday:'short',day:'numeric',month:'long',year:'numeric'}).format(dateTime);
-  const timeLabel=new Intl.DateTimeFormat('es-BO',{hour:'2-digit',minute:'2-digit'}).format(dateTime);
-  const endLabel=new Intl.DateTimeFormat('es-BO',{day:'numeric',month:'long',year:'numeric'}).format(endDate);
-  function changeDateTime(event:DateTimePickerEvent,value?:Date){if(Platform.OS==='android')setPicker(null);if(event.type==='set'&&value){if(picker==='end'){const next=new Date(value);next.setHours(23,59,59,999);setEndDate(next);return}const next=new Date(dateTime);if(picker==='date'){next.setFullYear(value.getFullYear(),value.getMonth(),value.getDate());if(endDate<next){const end=new Date(next);end.setHours(23,59,59,999);setEndDate(end)}}else next.setHours(value.getHours(),value.getMinutes(),0,0);setDateTime(next)}}
-  const preview=useMemo(()=>{if(!scheduled)return 0;let count=0;for(let d=new Date(dateTime),guard=0;d<=endDate&&guard++<400;d.setDate(d.getDate()+1))if(recurrence==='once'?count===0:weekdays.includes(d.getDay()))count++;return count},[dateTime,endDate,recurrence,scheduled,weekdays]);
-  const baseRule=(weekday:number):DayScheduleRule=>({weekday,hour:dateTime.getHours(),minute:dateTime.getMinutes(),durationMinutes:Number(duration)||60,preparationMinutes:Number(preparation)||0,travelMinutes:Number(travel)||0,bufferMinutes:Number(buffer)||0,returnTravelMinutes:Number(returnTravel)||0});
-  const changeRule=(weekday:number,changes:Partial<DayScheduleRule>)=>setDayRules(r=>({...r,[weekday]:{...(r[weekday]??baseRule(weekday)),...changes}}));
-  async function save(force=false){const minutes=Number(duration);const extras=[preparation,travel,buffer,returnTravel].map(Number);const rules=weekdays.map(x=>dayRules[x]??baseRule(x));if(!title.trim())return Alert.alert('Escribe el nombre de la actividad');if(!description.trim())return Alert.alert('Escribe una descripción');if(!Number.isInteger(minutes)||minutes<5||minutes>1440)return Alert.alert('La duración debe estar entre 5 y 1440 minutos');if(extras.some(x=>!Number.isFinite(x)||x<0)||rules.some(r=>r.durationMinutes<5||[r.preparationMinutes,r.travelMinutes,r.bufferMinutes,r.returnTravelMinutes].some(x=>!Number.isFinite(x)||x<0)))return Alert.alert('Revisa las duraciones y tiempos auxiliares');if(scheduled&&dateTime<=new Date())return Alert.alert('Elige una fecha y hora futuras');if(scheduled&&endDate<dateTime)return Alert.alert('La fecha final no puede ser anterior a la inicial');if(scheduled&&recurrence!=='once'&&!weekdays.length)return Alert.alert('Selecciona al menos un día');if(scheduled&&!force){const conflicts=await countScheduleConflicts(db,{startsAt:dateTime,endsOn:endDate,durationMinutes:minutes,recurrence,weekdays});if(conflicts)return Alert.alert('Conflictos detectados',`${conflicts} ocurrencia(s) se cruzan con tu horario.`,[{text:'Revisar',style:'cancel'},{text:'Guardar igualmente',onPress:()=>void save(true)}])}setSaving(true);try{
-    if(!scheduled){await createFlexibleActivity(db,{title:title.trim(),description,durationMinutes:minutes});showNotice({title:'Actividad guardada',message:'Podrás iniciarla cuando quieras desde Inicio.'});router.replace('/');return}
-    const {occurrences}=await createPlannedActivity(db,{title:title.trim(),description,priority,color,focusMode,startsAt:dateTime,endsOn:endDate,durationMinutes:minutes,recurrence,weekdays:recurrence==='once'?undefined:weekdays,dayRules:recurrence==='once'?undefined:rules,preparationMinutes:extras[0],travelMinutes:extras[1],bufferMinutes:extras[2],returnTravelMinutes:extras[3]});let notifications=0;
-    const notificationPreferences=await getNotificationPreferences(db);for(const occurrence of occurrences.slice(0,8)){const ids=await schedulePriorityNotifications(title.trim(),occurrence.startsAt,priority,notificationPreferences.offsets);for(const notificationId of ids){await attachNotification(db,occurrence.blockId,notificationId,new Date(occurrence.startsAt.getTime()-Math.max(...notificationPreferences.offsets)*60_000),title.trim());notifications++}}
-    await syncFocusSchedules(db);showNotice({title:priority==='critical'?'Recordatorio crítico activado':'Actividad programada',message:focusMode?'Nexo activará No molestar y permitirá las alarmas durante cada intervalo.':priority==='critical'?`${notifications} recordatorios configurados. Aparecerá marcada como crítica.`:notifications?`${notifications} recordatorios configurados.`:'Guardada localmente.'});router.replace('/');
-  }finally{setSaving(false)}}
-  return <KeyboardAvoidingView style={s.flex} behavior={Platform.OS==='ios'?'padding':undefined}><AppScreen><PageHeader eyebrow="Nueva actividad" title="Programa a tu manera" subtitle="Con horario o disponible para hacer cuando quieras."/>
-    <Card><Field label="Actividad" value={title} onChangeText={setTitle} placeholder="Ej. Entrenamiento"/><Field label="Descripción" value={description} onChangeText={setDescription} placeholder="Objetivo, instrucciones o detalles" multiline/>
-      <View style={s.switchRow}><View style={s.flex}><Text style={s.label}>Definir fecha y hora</Text><Text style={s.hint}>{scheduled?'Aparecerá en tu agenda':'Quedará como actividad flexible'}</Text></View><Switch value={scheduled} onValueChange={setScheduled} trackColor={{true:palette.primary}}/></View>
-      {scheduled?<><View style={s.row}><SelectButton label="Desde" value={dateLabel} onPress={()=>setPicker('date')}/><SelectButton label="Hora" value={timeLabel} onPress={()=>setPicker('time')}/></View><SelectButton label="Hasta" value={endLabel} onPress={()=>setPicker('end')}/>{picker?<DateTimePicker value={picker==='end'?endDate:dateTime} mode={picker==='time'?'time':'date'} display={Platform.OS==='ios'?'spinner':'default'} minimumDate={picker==='end'?dateTime:new Date()} onChange={changeDateTime}/>:null}</>:null}
-      <Field label="Duración (minutos)" value={duration} onChangeText={setDuration} keyboardType="number-pad" placeholder="60"/>
-      <Text style={s.label}>Prioridad</Text><View style={s.options}>{([['low','Baja'],['normal','Normal'],['high','Alta'],['critical','Crítica']] as const).map(([v,l])=><Pressable key={v} onPress={()=>setPriority(v)} style={[s.option,priority===v&&s.optionOn]}><Text style={priority===v?s.optionTextOn:s.optionText}>{l}</Text></Pressable>)}</View>
-      <Text style={s.label}>Color en agenda</Text><View style={s.colors}>{activityColors.map(x=><Pressable key={x} onPress={()=>setColor(x)} style={[s.color,{backgroundColor:x},color===x&&s.colorOn]}/>)}</View>
-      {scheduled?<View style={s.switchRow}><View style={s.flex}><Text style={s.label}>No molestar durante la actividad</Text><Text style={s.hint}>Silencia llamadas y avisos; las alarmas seguirán sonando. Al terminar se restaura el estado anterior.</Text></View><Switch value={focusMode} onValueChange={async value=>{setFocusMode(value);if(value&&!(await hasFocusAccess())){Alert.alert('Permiso necesario','En la siguiente pantalla permite a Nexo controlar “No molestar”. Luego vuelve para continuar.');await requestFocusAccess()}}} trackColor={{true:palette.primary}}/></View>:null}
-      {scheduled?<><Text style={s.label}>Frecuencia dentro del período</Text><View style={s.options}>{([['once','Una vez'],['daily','Todos los días'],['weekly','Cada semana']] as const).map(([v,l])=><Pressable key={v} onPress={()=>setRecurrence(v)} style={[s.option,recurrence===v&&s.optionOn]}><Text style={recurrence===v?s.optionTextOn:s.optionText}>{l}</Text></Pressable>)}</View>
-      {recurrence!=='once'?<><Text style={s.label}>Días y configuración independiente</Text><View style={s.weekdays}>{['D','L','M','X','J','V','S'].map((label,index)=><Pressable key={index} onPress={()=>setWeekdays(days=>days.includes(index)?days.filter(x=>x!==index):[...days,index])} style={[s.day,weekdays.includes(index)&&s.dayOn]}><Text style={weekdays.includes(index)?s.optionTextOn:s.optionText}>{label}</Text></Pressable>)}</View>{weekdays.sort().map(day=>{const r=dayRules[day]??baseRule(day);return <View key={day} style={s.rule}><Text style={s.ruleTitle}>{['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][day]}</Text><Pressable style={s.selector} onPress={()=>setRulePicker(day)}><Text style={s.label}>Hora</Text><Text style={s.selectorText}>{String(r.hour).padStart(2,'0')}:{String(r.minute).padStart(2,'0')}</Text></Pressable><View style={s.row}><MiniField label="Duración" value={r.durationMinutes} set={v=>changeRule(day,{durationMinutes:v})}/><MiniField label="Ida" value={r.travelMinutes} set={v=>changeRule(day,{travelMinutes:v})}/><MiniField label="Regreso" value={r.returnTravelMinutes} set={v=>changeRule(day,{returnTravelMinutes:v})}/></View>{rulePicker===day?<DateTimePicker value={new Date(2026,0,1,r.hour,r.minute)} mode="time" display={Platform.OS==='ios'?'spinner':'default'} onChange={(e,v)=>{if(Platform.OS==='android')setRulePicker(null);if(e.type==='set'&&v)changeRule(day,{hour:v.getHours(),minute:v.getMinutes()})}}/>:null}</View>})}</>:null}
-      <Text style={s.label}>Traslados visibles en el horario (minutos)</Text><View style={s.row}><Field label="Ida" value={travel} onChangeText={setTravel} keyboardType="number-pad"/><Field label="Regreso" value={returnTravel} onChangeText={setReturnTravel} keyboardType="number-pad"/></View><Text style={s.hint}>La preparación y el margen no se muestran como bloques.</Text><View style={s.preview}><Text style={s.previewText}>Vista previa: se crearán {preview} actividades</Text></View></>:null}
-    </Card><Pressable disabled={saving} style={[s.save,saving&&s.disabled]} onPress={()=>void save()}><Text style={s.saveText}>{saving?'Guardando…':scheduled?'Programar actividad':'Guardar para cuando quiera'}</Text></Pressable>
-  </AppScreen></KeyboardAvoidingView>
+  const db = useSQLiteContext();
+  const router = useRouter();
+  const { isDark } = useAppTheme();
+  const { showNotice } = useAppNotice();
+  const params = useLocalSearchParams<{ startsAt?: string; endsAt?: string }>();
+
+  const initial = useMemo(() => {
+    const parsed = params.startsAt ? new Date(params.startsAt) : new Date(Date.now() + 60 * 60_000);
+    const d = Number.isNaN(parsed.getTime()) ? new Date(Date.now() + 60 * 60_000) : parsed;
+    d.setSeconds(0, 0);
+    return d;
+  }, [params.startsAt]);
+
+  const [title, setTitle] = useState('');
+  const [scheduled, setScheduled] = useState(true);
+  const [dateTime, setDateTime] = useState(initial);
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date(initial);
+    d.setMonth(d.getMonth() + 3);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  });
+  const [picker, setPicker] = useState<'date' | 'time' | 'end' | null>(null);
+  const [duration, setDuration] = useState(() =>
+    params.endsAt
+      ? String(Math.max(5, Math.round((new Date(params.endsAt).getTime() - initial.getTime()) / 60000)))
+      : '60'
+  );
+  const [recurrence, setRecurrence] = useState<'once' | 'daily' | 'weekly'>('once');
+  const [weekdays, setWeekdays] = useState<number[]>([initial.getDay()]);
+  const [priority, setPriority] = useState<'low' | 'normal' | 'high' | 'critical'>('normal');
+  const [color, setColor] = useState('#2563EB');
+  const [focusMode, setFocusMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const colors = {
+    text: isDark ? '#F8FAFC' : palette.ink,
+    muted: isDark ? '#94A3B8' : palette.muted,
+    cardBg: isDark ? '#151D30' : '#FFFFFF',
+    border: isDark ? '#26344F' : palette.border,
+    inputBg: isDark ? '#0F172A' : '#F8FAFC',
+    chipBg: isDark ? '#1E293B' : '#F1F5F9',
+    chipActive: palette.primary,
+  };
+
+  const dateLabel = new Intl.DateTimeFormat('es-BO', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+  }).format(dateTime);
+
+  const timeLabel = new Intl.DateTimeFormat('es-BO', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(dateTime);
+
+  const endDateLabel = new Intl.DateTimeFormat('es-BO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(endDate);
+
+  function changeDateTime(event: DateTimePickerEvent, value?: Date) {
+    if (Platform.OS === 'android') setPicker(null);
+    if (event.type === 'set' && value) {
+      if (picker === 'end') {
+        const next = new Date(value);
+        next.setHours(23, 59, 59, 999);
+        setEndDate(next);
+        return;
+      }
+      const next = new Date(dateTime);
+      if (picker === 'date') {
+        next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
+      } else {
+        next.setHours(value.getHours(), value.getMinutes(), 0, 0);
+      }
+      setDateTime(next);
+    }
+  }
+
+  function toggleWeekday(day: number) {
+    if (weekdays.includes(day)) {
+      if (weekdays.length > 1) {
+        setWeekdays(weekdays.filter((d) => d !== day));
+      }
+    } else {
+      setWeekdays([...weekdays, day]);
+    }
+  }
+
+  async function handleSave(force = false) {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      return Alert.alert('Nombre requerido', 'Ingresa el nombre de la actividad o clase.');
+    }
+    const minutes = Number(duration);
+    if (!Number.isInteger(minutes) || minutes < 5 || minutes > 1440) {
+      return Alert.alert('Duración inválida', 'La duración debe estar entre 5 y 1440 minutos.');
+    }
+
+    if (!scheduled) {
+      setSaving(true);
+      try {
+        await createFlexibleActivityUseCase(db, {
+          title: cleanTitle,
+          durationMinutes: minutes,
+          kind: 'general',
+        });
+        showNotice({ title: 'Actividad flexible creada', message: cleanTitle });
+        router.back();
+      } catch (e) {
+        Alert.alert('Error', e instanceof Error ? e.message : 'No se pudo guardar');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (!force) {
+      const conflicts = await countScheduleConflictsUseCase(db, {
+        startsAt: dateTime,
+        endsOn: recurrence === 'once' ? dateTime : endDate,
+        durationMinutes: minutes,
+        recurrence,
+        weekdays,
+      });
+      if (conflicts > 0) {
+        return Alert.alert(
+          'Cruce de horario',
+          `Esta actividad coincide con ${conflicts} evento(s) ya programado(s). ¿Deseas programarla igualmente?`,
+          [
+            { text: 'Modificar horario', style: 'cancel' },
+            { text: 'Guardar de todos modos', onPress: () => void handleSave(true) },
+          ]
+        );
+      }
+    }
+
+    setSaving(true);
+    try {
+      if (focusMode && Platform.OS === 'android' && !(await hasFocusAccess())) {
+        await requestFocusAccess();
+      }
+
+      const created = await createPlannedActivityUseCase(db, {
+        title: cleanTitle,
+        startsAt: dateTime,
+        endsOn: recurrence === 'once' ? dateTime : endDate,
+        durationMinutes: minutes,
+        recurrence,
+        weekdays,
+        priority,
+        color,
+        focusMode,
+      });
+
+      const prefs = await getNotificationPreferencesUseCase(db);
+      for (const occurrence of created.occurrences) {
+        const notificationIds = await schedulePriorityNotifications(
+          cleanTitle,
+          occurrence.startsAt,
+          priority,
+          prefs.offsets
+        );
+        for (let i = 0; i < notificationIds.length; i++) {
+          const id = notificationIds[i];
+          const offset = prefs.offsets[i] ?? 15;
+          const remindAt = new Date(occurrence.startsAt.getTime() - offset * 60_000);
+          await attachNotificationUseCase(
+            db,
+            occurrence.blockId,
+            id,
+            remindAt,
+            cleanTitle
+          );
+        }
+      }
+
+      await syncFocusSchedules(db);
+      showNotice({
+        title: 'Actividad programada',
+        message: `${cleanTitle} se guardó correctamente.`,
+      });
+      router.back();
+    } catch (e) {
+      Alert.alert('Error al guardar', e instanceof Error ? e.message : 'Revisa los datos');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <AppScreen>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+          <PageHeader
+            eyebrow="Nueva actividad"
+            title="Crear clase o actividad"
+            subtitle="Organiza tu horario y haz seguimiento a tus horas de dedicación."
+          />
+
+          {/* Nombre */}
+          <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Nombre de la actividad o clase</Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Ej: Álgebra Lineal, Programación, Gimnasio"
+              placeholderTextColor={colors.muted}
+              style={[
+                styles.input,
+                { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg },
+              ]}
+              autoFocus
+            />
+          </Card>
+
+          {/* Tipo de horario */}
+          <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.text }]}>Horario programado en agenda</Text>
+                <Text style={[styles.muted, { color: colors.muted }]}>
+                  {scheduled
+                    ? 'Aparece en tu horario diario con hora de inicio y fin.'
+                    : 'Actividad flexible para realizar cuando tengas tiempo.'}
+                </Text>
+              </View>
+              <Switch value={scheduled} onValueChange={setScheduled} />
+            </View>
+          </Card>
+
+          {scheduled ? (
+            <>
+              {/* Fecha y Hora */}
+              <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Fecha y hora de inicio</Text>
+                <View style={styles.row}>
+                  <Pressable
+                    style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                    onPress={() => setPicker('date')}
+                  >
+                    <Text style={[styles.pickerBtnSub, { color: colors.muted }]}>Fecha</Text>
+                    <Text style={[styles.pickerBtnText, { color: colors.text }]}>{dateLabel}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                    onPress={() => setPicker('time')}
+                  >
+                    <Text style={[styles.pickerBtnSub, { color: colors.muted }]}>Hora de inicio</Text>
+                    <Text style={[styles.pickerBtnText, { color: colors.text }]}>{timeLabel}</Text>
+                  </Pressable>
+                </View>
+              </Card>
+
+              {/* Duración */}
+              <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Duración</Text>
+                <View style={styles.chipsRow}>
+                  {QUICK_DURATIONS.map((q) => (
+                    <Pressable
+                      key={q.value}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: duration === q.value ? palette.primary : colors.chipBg,
+                          borderColor: duration === q.value ? palette.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setDuration(q.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          { color: duration === q.value ? '#FFFFFF' : colors.text },
+                        ]}
+                      >
+                        {q.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <View style={styles.customDurationRow}>
+                  <Text style={[styles.muted, { color: colors.muted }]}>Minutos exactos:</Text>
+                  <TextInput
+                    value={duration}
+                    onChangeText={setDuration}
+                    keyboardType="number-pad"
+                    style={[
+                      styles.smallInput,
+                      { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg },
+                    ]}
+                  />
+                  <Text style={[styles.muted, { color: colors.muted }]}>min</Text>
+                </View>
+              </Card>
+
+              {/* Recurrencia */}
+              <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Text style={[styles.label, { color: colors.text }]}>Frecuencia</Text>
+                <View style={styles.segmented}>
+                  {(['once', 'daily', 'weekly'] as const).map((mode) => (
+                    <Pressable
+                      key={mode}
+                      style={[
+                        styles.segment,
+                        {
+                          backgroundColor: recurrence === mode ? palette.primary : colors.inputBg,
+                        },
+                      ]}
+                      onPress={() => setRecurrence(mode)}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentText,
+                          { color: recurrence === mode ? '#FFFFFF' : colors.muted },
+                        ]}
+                      >
+                        {mode === 'once' ? 'Una vez' : mode === 'daily' ? 'Diario' : 'Semanal'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {recurrence === 'weekly' ? (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={[styles.subLabel, { color: colors.muted }]}>Días de la semana</Text>
+                    <View style={styles.weekdaysRow}>
+                      {WEEKDAY_NAMES.map((w) => {
+                        const selected = weekdays.includes(w.day);
+                        return (
+                          <Pressable
+                            key={w.day}
+                            style={[
+                              styles.dayCircle,
+                              {
+                                backgroundColor: selected ? palette.primary : colors.chipBg,
+                                borderColor: selected ? palette.primary : colors.border,
+                              },
+                            ]}
+                            onPress={() => toggleWeekday(w.day)}
+                          >
+                            <Text
+                              style={[
+                                styles.dayCircleText,
+                                { color: selected ? '#FFFFFF' : colors.text },
+                              ]}
+                            >
+                              {w.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+
+                    <Pressable
+                      style={[styles.endDateRow, { borderColor: colors.border }]}
+                      onPress={() => setPicker('end')}
+                    >
+                      <Text style={[styles.muted, { color: colors.muted }]}>Repetir hasta:</Text>
+                      <Text style={[styles.endDateValue, { color: colors.text }]}>{endDateLabel}</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </Card>
+            </>
+          ) : (
+            <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.text }]}>Duración estimada</Text>
+              <View style={styles.chipsRow}>
+                {QUICK_DURATIONS.map((q) => (
+                  <Pressable
+                    key={q.value}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: duration === q.value ? palette.primary : colors.chipBg,
+                        borderColor: duration === q.value ? palette.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setDuration(q.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: duration === q.value ? '#FFFFFF' : colors.text },
+                      ]}
+                    >
+                      {q.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Card>
+          )}
+
+          {/* Color de identificación */}
+          <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Color de identificación</Text>
+            <View style={styles.colorsRow}>
+              {activityColors.map((c) => (
+                <Pressable
+                  key={c}
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: c },
+                    color === c && styles.colorCircleSelected,
+                  ]}
+                  onPress={() => setColor(c)}
+                >
+                  {color === c ? <Text style={styles.check}>✓</Text> : null}
+                </Pressable>
+              ))}
+            </View>
+          </Card>
+
+          {/* Prioridad y Modo Enfoque */}
+          <Card style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Prioridad</Text>
+            <View style={styles.segmented}>
+              {(['low', 'normal', 'high', 'critical'] as const).map((p) => (
+                <Pressable
+                  key={p}
+                  style={[
+                    styles.segment,
+                    {
+                      backgroundColor: priority === p ? palette.primary : colors.inputBg,
+                    },
+                  ]}
+                  onPress={() => setPriority(p)}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      { color: priority === p ? '#FFFFFF' : colors.muted },
+                    ]}
+                  >
+                    {p === 'low' ? 'Baja' : p === 'normal' ? 'Normal' : p === 'high' ? 'Alta' : 'Crítica'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={[styles.switchRow, { marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 14 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.subLabel, { color: colors.text }]}>Modo enfoque automático</Text>
+                <Text style={[styles.muted, { color: colors.muted, fontSize: 12 }]}>
+                  Silencia notificaciones distractivas durante esta actividad.
+                </Text>
+              </View>
+              <Switch value={focusMode} onValueChange={setFocusMode} />
+            </View>
+          </Card>
+
+          {/* Botón de Guardar */}
+          <Pressable
+            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+            onPress={() => void handleSave()}
+            disabled={saving}
+          >
+            <Text style={styles.saveBtnText}>
+              {saving ? 'Guardando…' : '＋ Guardar Actividad'}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {picker ? (
+        <DateTimePicker
+          value={picker === 'end' ? endDate : dateTime}
+          mode={picker === 'time' ? 'time' : 'date'}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={changeDateTime}
+        />
+      ) : null}
+    </AppScreen>
+  );
 }
-function Field(props:React.ComponentProps<typeof TextInput>&{label:string}){return <View style={s.field}><Text style={s.label}>{props.label}</Text><TextInput {...props} style={[s.input,props.multiline&&s.multiline]} placeholderTextColor="#98A2B3"/></View>}
-function SelectButton({label,value,onPress}:{label:string;value:string;onPress:()=>void}){return <Pressable style={[s.field,s.selector]} onPress={onPress}><Text style={s.label}>{label}</Text><Text style={s.selectorText}>{value}</Text><Text style={s.choose}>Tocar para elegir</Text></Pressable>}
-function MiniField({label,value,set}:{label:string;value:number;set:(v:number)=>void}){return <View style={s.field}><Text style={s.label}>{label}</Text><TextInput style={s.input} value={String(value)} onChangeText={x=>set(Number(x)||0)} keyboardType="number-pad"/></View>}
-const s=StyleSheet.create({flex:{flex:1},row:{flexDirection:'row',gap:10},field:{gap:7,flex:1},label:{color:'#F8FAFC',fontWeight:'700',fontSize:13},hint:{color:'#CBD5E1',fontSize:12},input:{borderWidth:1,borderColor:'#64748B',backgroundColor:'#0F172A',borderRadius:12,paddingHorizontal:13,paddingVertical:12,color:'#F8FAFC',fontSize:16},multiline:{minHeight:76,textAlignVertical:'top'},switchRow:{flexDirection:'row',alignItems:'center',gap:12},selector:{borderWidth:1,borderColor:'#64748B',borderRadius:12,padding:12,backgroundColor:'#0F172A'},selectorText:{color:'#F8FAFC',fontWeight:'700'},choose:{color:'#93C5FD',fontSize:11},options:{gap:8},colors:{flexDirection:'row',flexWrap:'wrap',gap:10},color:{width:30,height:30,borderRadius:15},colorOn:{borderWidth:3,borderColor:'#F8FAFC'},option:{padding:11,borderRadius:11,backgroundColor:'#24324A',borderWidth:1,borderColor:'#334155'},optionOn:{backgroundColor:'#172554',borderColor:'#60A5FA'},optionText:{color:'#CBD5E1',fontWeight:'700'},optionTextOn:{color:'#BFDBFE',fontWeight:'800'},weekdays:{flexDirection:'row',justifyContent:'space-between'},day:{width:38,height:38,borderRadius:19,alignItems:'center',justifyContent:'center',backgroundColor:'#24324A'},dayOn:{backgroundColor:palette.primary},rule:{borderWidth:1,borderColor:'#475569',borderRadius:14,padding:12,gap:9},ruleTitle:{color:'#93C5FD',fontWeight:'900',fontSize:16},preview:{backgroundColor:'#172554',padding:12,borderRadius:12,borderWidth:1,borderColor:'#3157D5'},previewText:{color:'#BFDBFE',fontWeight:'800'},save:{backgroundColor:palette.primary,borderRadius:16,padding:16,alignItems:'center'},saveText:{color:'#FFF',fontWeight:'800',fontSize:16},disabled:{opacity:.55}});
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  subLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  muted: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  smallInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 14,
+    width: 64,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pickerBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  pickerBtnSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  pickerBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  customDurationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  segmented: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    overflow: 'hidden',
+    padding: 3,
+    backgroundColor: '#0F172A',
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  weekdaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  dayCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  dayCircleText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  endDateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  endDateValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  colorsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  colorCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorCircleSelected: {
+    transform: [{ scale: 1.15 }],
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  check: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 16,
+  },
+  saveBtn: {
+    backgroundColor: palette.primary,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 32,
+    shadowColor: palette.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+});

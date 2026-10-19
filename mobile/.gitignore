@@ -43,3 +43,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# generated QR files
+expo-*.svg
+expo-qr.html
+

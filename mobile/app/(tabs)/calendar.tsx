@@ -1,14 +1,393 @@
-import {useCallback,useMemo,useState} from 'react';
-import {Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
-import {Link,useFocusEffect} from 'expo-router';import {useSQLiteContext} from 'expo-sqlite';
-import {AppScreen,Card,PageHeader,palette} from '@/components/AppScreen';import {useAppTheme} from '@/lib/theme';
-import {getSchedulePreferences,listBlocksForDate,type DailyScheduleItem,type SchedulePreferences} from '@/lib/database';
-type Mode='day'|'week'|'month';const key=(d:Date)=>`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`,clock=(d:Date)=>d.toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'});
-const estado=(value:string)=>({planned:'Pendiente',arrived:'Llegué',late:'Retrasada',in_progress:'En progreso',paused:'Pausada',completed:'Completada',partial:'Parcial',skipped:'Omitida',rescheduled:'Reprogramada',cancelled:'Cancelada'}[value]??value);
-const tipo=(value:string)=>({activity:'Actividad',travel:'Traslado de ida',return:'Traslado de regreso',meal:'Comida'}[value]??'Actividad');
-function datesFor(mode:Mode,selected:Date){if(mode==='day')return [new Date(selected)];if(mode==='week'){const start=new Date(selected),offset=(start.getDay()+6)%7;start.setDate(start.getDate()-offset);return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d})}const start=new Date(selected.getFullYear(),selected.getMonth(),1),offset=(start.getDay()+6)%7;start.setDate(start.getDate()-offset);return Array.from({length:42},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d})}
-export default function Agenda(){const db=useSQLiteContext(),{isDark}=useAppTheme(),[mode,setMode]=useState<Mode>('day'),[selected,setSelected]=useState(new Date()),[data,setData]=useState<Record<string,DailyScheduleItem[]>>({}),[prefs,setPrefs]=useState<SchedulePreferences|null>(null);const dates=useMemo(()=>datesFor(mode,selected),[mode,selected]);const load=useCallback(async()=>{setPrefs(await getSchedulePreferences(db));const pairs=await Promise.all(dates.map(async d=>[key(d),await listBlocksForDate(db,d)] as const));setData(Object.fromEntries(pairs))},[db,dates]);useFocusEffect(useCallback(()=>{void load()},[load]));const c={text:isDark?'#F8FAFC':palette.ink,muted:isDark?'#CBD5E1':palette.muted,surface:isDark?'#172033':'#FFF',soft:isDark?'#24324A':'#F2F4F7',border:isDark?'#475569':palette.border};function move(n:number){const d=new Date(selected);mode==='day'?d.setDate(d.getDate()+n):mode==='week'?d.setDate(d.getDate()+7*n):d.setMonth(d.getMonth()+n);setSelected(d)}
-return <AppScreen><PageHeader eyebrow="Agenda" title={mode==='day'?'Horario diario':mode==='week'?'Vista semanal':'Vista mensual'} subtitle="Todas tus actividades organizadas por fecha y hora."/><View style={s.modes}>{(['day','week','month'] as const).map(x=><Pressable key={x} style={[s.mode,{backgroundColor:mode===x?palette.primary:c.soft}]} onPress={()=>setMode(x)}><Text style={{color:mode===x?'#FFF':c.text,fontWeight:'800'}}>{x==='day'?'Día':x==='week'?'Semana':'Mes'}</Text></Pressable>)}</View><View style={s.nav}><Pressable onPress={()=>move(-1)}><Text style={{color:c.text}}>‹ Anterior</Text></Pressable><Pressable onPress={()=>setSelected(new Date())}><Text style={s.today}>Hoy</Text></Pressable><Pressable onPress={()=>move(1)}><Text style={{color:c.text}}>Siguiente ›</Text></Pressable></View>{mode==='day'?<Day date={dates[0]} items={data[key(dates[0])]||[]} prefs={prefs} colors={c}/>:mode==='week'?<WeekGrid dates={dates} data={data} prefs={prefs} colors={c}/>:<><View style={s.monthHeads}>{['L','M','X','J','V','S','D'].map(x=><Text key={x} style={[s.monthHead,{color:c.muted}]}>{x}</Text>)}</View><View style={s.month}>{dates.map(d=><View key={key(d)} style={[s.cell,{backgroundColor:c.surface,borderColor:c.border,opacity:d.getMonth()===selected.getMonth()?1:.45}]}><Text style={{color:c.text,fontWeight:'900'}}>{d.getDate()}</Text>{(data[key(d)]||[]).slice(0,3).map(x=><View key={x.id} style={[s.monthItem,{backgroundColor:x.color}]}><Text numberOfLines={1} style={s.monthText}>{clock(new Date(x.starts_at))} {x.title}{x.priority==='critical'?' !':''}</Text></View>)}{(data[key(d)]||[]).length>3?<Text style={{color:palette.primary,fontSize:10}}>+{data[key(d)].length-3}</Text>:null}</View>)}</View></>}</AppScreen>}
-function Day({date,items,prefs,colors}:{date:Date;items:DailyScheduleItem[];prefs:SchedulePreferences|null;colors:any}){const start=new Date(date);start.setHours(Number(prefs?.dayStart.slice(0,2)||6),Number(prefs?.dayStart.slice(3)||0),0,0);const end=new Date(date);end.setHours(Number(prefs?.dayEnd.slice(0,2)||22),Number(prefs?.dayEnd.slice(3)||0),0,0);const rows:any[]=[];let cursor=start.getTime();for(const x of items){const a=new Date(x.starts_at).getTime(),b=new Date(x.ends_at).getTime();if(a>cursor)rows.push({id:`free-${a}`,start:cursor,end:a});rows.push({id:x.id,start:a,end:b,item:x});cursor=Math.max(cursor,b)}if(cursor<end.getTime())rows.push({id:'free-end',start:cursor,end:end.getTime()});return <Card style={{backgroundColor:colors.surface,borderColor:colors.border}}><Text style={{color:colors.text,fontWeight:'900',fontSize:18}}>{date.toLocaleDateString('es-BO',{weekday:'long',day:'numeric',month:'long'})}</Text>{rows.map(r=><View key={r.id} style={[s.line,{borderColor:colors.border}]}><View style={[s.hour,{borderColor:colors.border}]}><Text style={{color:colors.text,fontWeight:'800'}}>{clock(new Date(r.start))}</Text><Text style={{color:colors.muted}}>{clock(new Date(r.end))}</Text></View>{r.item?<Link href={{pathname:'/edit-activity/[blockId]',params:{blockId:r.item.id}}} asChild><Pressable style={StyleSheet.flatten([s.activity,{borderLeftColor:r.item.color,borderLeftWidth:6}])}><Text style={{color:colors.text,fontWeight:'900'}}>{r.item.priority==='critical'?'‼ ':r.item.priority==='high'?'↑ ':''}{r.item.title}</Text><Text style={{color:colors.muted}}>{r.item.priority==='critical'?'Prioridad crítica · ':r.item.priority==='high'?'Prioridad alta · ':''}{tipo(r.item.kind)} · {estado(r.item.status)}</Text></Pressable></Link>:<Link href={{pathname:'/new-activity',params:{startsAt:new Date(r.start).toISOString(),endsAt:new Date(r.end).toISOString()}}} asChild><Pressable style={s.activity}><Text style={{color:'#60A5FA',fontWeight:'800'}}>Tiempo libre</Text></Pressable></Link>}</View>)}</Card>}
-function WeekGrid({dates,data,prefs,colors}:{dates:Date[];data:Record<string,DailyScheduleItem[]>;prefs:SchedulePreferences|null;colors:any}){const start=Number(prefs?.dayStart.slice(0,2)||6),end=Number(prefs?.dayEnd.slice(0,2)||22),hours=Array.from({length:Math.max(1,end-start)},(_,i)=>start+i);return <ScrollView horizontal><View style={{minWidth:660}}><View style={s.weekRow}><View style={[s.weekHour,{backgroundColor:colors.soft,borderColor:colors.border}]}><Text style={{color:colors.text,fontWeight:'900'}}>Hora</Text></View>{dates.map(d=><View key={key(d)} style={[s.weekDay,{backgroundColor:colors.soft,borderColor:colors.border}]}><Text style={{color:colors.text,fontWeight:'900',textAlign:'center'}}>{d.toLocaleDateString('es-BO',{weekday:'short'})}</Text><Text style={{color:colors.muted,textAlign:'center'}}>{d.getDate()}</Text></View>)}</View>{hours.map(hour=><View key={hour} style={s.weekRow}><View style={[s.weekHour,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={{color:colors.text,fontWeight:'800'}}>{String(hour).padStart(2,'0')}:00</Text></View>{dates.map(d=>{const point=new Date(d);point.setHours(hour,0,0,0);const matches=(data[key(d)]||[]).filter(x=>new Date(x.starts_at).getTime()<point.getTime()+3600000&&new Date(x.ends_at).getTime()>point.getTime());return <View key={`${key(d)}-${hour}`} style={[s.weekDay,{backgroundColor:colors.surface,borderColor:colors.border}]}>{matches.map(x=><Link key={x.id} href={{pathname:'/edit-activity/[blockId]',params:{blockId:x.id}}} asChild><Pressable style={StyleSheet.flatten([s.weekActivity,{backgroundColor:x.color}])}><Text numberOfLines={2} style={{color:'#FFF',fontSize:11,fontWeight:'800'}}>{x.priority==='critical'?'‼ ':x.priority==='high'?'↑ ':''}{clock(new Date(x.starts_at))} {x.title}</Text></Pressable></Link>)}</View>})}</View>)}</View></ScrollView>}
-const s=StyleSheet.create({modes:{flexDirection:'row',gap:8},mode:{flex:1,padding:11,borderRadius:12,alignItems:'center'},nav:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},today:{color:'#FFF',backgroundColor:palette.primary,paddingHorizontal:18,paddingVertical:9,borderRadius:12,fontWeight:'800'},week:{gap:10},monthHeads:{flexDirection:'row'},monthHead:{width:'14.285%',textAlign:'center',fontWeight:'800'},month:{flexDirection:'row',flexWrap:'wrap'},cell:{width:'14.285%',minHeight:92,padding:4,borderWidth:.5},monthItem:{paddingHorizontal:3,paddingVertical:2,borderRadius:4,marginTop:2},monthText:{color:'#FFF',fontSize:9,fontWeight:'800'},line:{flexDirection:'row',borderTopWidth:1,minHeight:62},hour:{width:78,padding:9,borderRightWidth:1},activity:{flex:1,padding:9,gap:4},weekRow:{flexDirection:'row'},weekHour:{width:64,minHeight:64,padding:7,borderWidth:.5},weekDay:{width:85,minHeight:64,padding:5,borderWidth:.5},weekActivity:{padding:5,borderRadius:6,marginBottom:3}});
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Link, useFocusEffect } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+
+import { AppScreen, Card, PageHeader, palette } from '@core/ui/AppScreen';
+import { useAppTheme } from '@core/theme';
+import {
+  getSchedulePreferencesUseCase,
+  listBlocksForDateUseCase,
+  type DailyScheduleItem,
+  type SchedulePreferences,
+} from '@modules/calendar';
+
+type Mode = 'day' | 'week' | 'month';
+const key = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const clock = (d: Date) =>
+  d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
+
+const estado = (value: string) =>
+  ({
+    planned: 'Pendiente',
+    arrived: 'Llegué',
+    late: 'Retrasada',
+    in_progress: 'En progreso',
+    paused: 'Pausada',
+    completed: 'Completada',
+    partial: 'Parcial',
+    skipped: 'Suspendida',
+    rescheduled: 'Reprogramada',
+    cancelled: 'Cancelada',
+  }[value] ?? value);
+
+const tipo = (value: string) =>
+  ({
+    activity: 'Actividad',
+    meal: 'Comida',
+  }[value] ?? 'Actividad');
+
+function datesFor(mode: Mode, selected: Date) {
+  if (mode === 'day') return [new Date(selected)];
+  if (mode === 'week') {
+    const start = new Date(selected);
+    const offset = (start.getDay() + 6) % 7;
+    start.setDate(start.getDate() - offset);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }
+  const start = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  const offset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - offset);
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+}
+
+export default function Agenda() {
+  const db = useSQLiteContext();
+  const { isDark } = useAppTheme();
+  const [mode, setMode] = useState<Mode>('day');
+  const [selected, setSelected] = useState(new Date());
+  const [data, setData] = useState<Record<string, DailyScheduleItem[]>>({});
+  const [prefs, setPrefs] = useState<SchedulePreferences | null>(null);
+
+  const dates = useMemo(() => datesFor(mode, selected), [mode, selected]);
+
+  const load = useCallback(async () => {
+    const preferences = await getSchedulePreferencesUseCase(db);
+    setPrefs(preferences);
+    const pairs = await Promise.all(
+      dates.map(async (d) => [key(d), await listBlocksForDateUseCase(db, d)] as const)
+    );
+    setData(Object.fromEntries(pairs));
+  }, [db, dates]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
+
+  const c = {
+    text: isDark ? '#F8FAFC' : palette.ink,
+    muted: isDark ? '#CBD5E1' : palette.muted,
+    surface: isDark ? '#172033' : '#FFF',
+    soft: isDark ? '#24324A' : '#F2F4F7',
+    border: isDark ? '#475569' : palette.border,
+  };
+
+  function move(n: number) {
+    const d = new Date(selected);
+    if (mode === 'day') d.setDate(d.getDate() + n);
+    else if (mode === 'week') d.setDate(d.getDate() + 7 * n);
+    else d.setMonth(d.getMonth() + n);
+    setSelected(d);
+  }
+
+  return (
+    <AppScreen>
+      <PageHeader
+        eyebrow="Agenda"
+        title={mode === 'day' ? 'Horario diario' : mode === 'week' ? 'Vista semanal' : 'Vista mensual'}
+        subtitle="Todas tus actividades organizadas por fecha y hora."
+      />
+      <View style={s.modes}>
+        {(['day', 'week', 'month'] as const).map((x) => (
+          <Pressable
+            key={x}
+            style={[s.mode, { backgroundColor: mode === x ? palette.primary : c.soft }]}
+            onPress={() => setMode(x)}
+          >
+            <Text style={{ color: mode === x ? '#FFF' : c.text, fontWeight: '800' }}>
+              {x === 'day' ? 'Día' : x === 'week' ? 'Semana' : 'Mes'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={s.nav}>
+        <Pressable onPress={() => move(-1)}>
+          <Text style={{ color: c.text }}>‹ Anterior</Text>
+        </Pressable>
+        <Pressable onPress={() => setSelected(new Date())}>
+          <Text style={s.today}>Hoy</Text>
+        </Pressable>
+        <Pressable onPress={() => move(1)}>
+          <Text style={{ color: c.text }}>Siguiente ›</Text>
+        </Pressable>
+      </View>
+      {mode === 'day' ? (
+        <Day date={dates[0]} items={data[key(dates[0])] || []} prefs={prefs} colors={c} />
+      ) : mode === 'week' ? (
+        <WeekGrid dates={dates} data={data} prefs={prefs} colors={c} />
+      ) : (
+        <>
+          <View style={s.monthHeads}>
+            {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((x) => (
+              <Text key={x} style={[s.monthHead, { color: c.muted }]}>
+                {x}
+              </Text>
+            ))}
+          </View>
+          <View style={s.month}>
+            {dates.map((d) => (
+              <View
+                key={key(d)}
+                style={[
+                  s.cell,
+                  {
+                    backgroundColor: c.surface,
+                    borderColor: c.border,
+                    opacity: d.getMonth() === selected.getMonth() ? 1 : 0.45,
+                  },
+                ]}
+              >
+                <Text style={{ color: c.text, fontWeight: '900' }}>{d.getDate()}</Text>
+                {(data[key(d)] || []).slice(0, 3).map((x) => (
+                  <View key={x.id} style={[s.monthItem, { backgroundColor: x.color }]}>
+                    <Text numberOfLines={1} style={s.monthText}>
+                      {clock(new Date(x.starts_at))} {x.title}
+                      {x.priority === 'critical' ? ' !' : ''}
+                    </Text>
+                  </View>
+                ))}
+                {(data[key(d)] || []).length > 3 ? (
+                  <Text style={{ color: palette.primary, fontSize: 10 }}>
+                    +{data[key(d)].length - 3}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+    </AppScreen>
+  );
+}
+
+function Day({
+  date,
+  items,
+  prefs,
+  colors,
+}: {
+  date: Date;
+  items: DailyScheduleItem[];
+  prefs: SchedulePreferences | null;
+  colors: any;
+}) {
+  const start = new Date(date);
+  start.setHours(Number(prefs?.dayStart.slice(0, 2) || 6), Number(prefs?.dayStart.slice(3) || 0), 0, 0);
+  const end = new Date(date);
+  end.setHours(Number(prefs?.dayEnd.slice(0, 2) || 22), Number(prefs?.dayEnd.slice(3) || 0), 0, 0);
+
+  const rows: any[] = [];
+  let cursor = start.getTime();
+  for (const x of items) {
+    const a = new Date(x.starts_at).getTime();
+    const b = new Date(x.ends_at).getTime();
+    if (a > cursor) rows.push({ id: `free-${a}`, start: cursor, end: a });
+    rows.push({ id: x.id, start: a, end: b, item: x });
+    cursor = Math.max(cursor, b);
+  }
+  if (cursor < end.getTime()) rows.push({ id: 'free-end', start: cursor, end: end.getTime() });
+
+  return (
+    <Card style={{ backgroundColor: colors.surface, borderColor: colors.border }}>
+      <Text style={{ color: colors.text, fontWeight: '900', fontSize: 18 }}>
+        {date.toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'long' })}
+      </Text>
+      {rows.map((r) => (
+        <View key={r.id} style={[s.line, { borderColor: colors.border }]}>
+          <View style={[s.hour, { borderColor: colors.border }]}>
+            <Text style={{ color: colors.text, fontWeight: '800' }}>
+              {clock(new Date(r.start))}
+            </Text>
+            <Text style={{ color: colors.muted }}>{clock(new Date(r.end))}</Text>
+          </View>
+          {r.item ? (
+            <View
+              style={StyleSheet.flatten([
+                s.activity,
+                { borderLeftColor: r.item.color, borderLeftWidth: 6 },
+              ])}
+            >
+              <Link
+                href={{ pathname: '/activity/[id]', params: { id: r.item.activity_id, blockId: r.item.id } }}
+                asChild
+              >
+                <Pressable>
+                  <Text style={{ color: colors.text, fontWeight: '900', fontSize: 16 }}>
+                    {r.item.priority === 'critical' ? '‼ ' : r.item.priority === 'high' ? '↑ ' : ''}
+                    {r.item.title}
+                  </Text>
+                  {r.item.reason ? (
+                    <Text style={{ color: '#F87171', fontSize: 12, fontWeight: '700', marginTop: 2 }}>
+                      ⚠️ Motivo: {r.item.reason}
+                    </Text>
+                  ) : null}
+                  <Text style={{ color: colors.muted, marginTop: 2 }}>
+                    {estado(r.item.status)} · Ver temas y cronómetro ›
+                  </Text>
+                </Pressable>
+              </Link>
+              <Link
+                href={{ pathname: '/edit-activity/[blockId]', params: { blockId: r.item.id } }}
+                asChild
+              >
+                <Pressable style={{ marginTop: 4 }}>
+                  <Text style={{ color: '#60A5FA', fontSize: 12, fontWeight: '700' }}>
+                    Editar / Eliminar
+                  </Text>
+                </Pressable>
+              </Link>
+            </View>
+          ) : (
+            <Link
+              href={{
+                pathname: '/new-activity',
+                params: {
+                  startsAt: new Date(r.start).toISOString(),
+                  endsAt: new Date(r.end).toISOString(),
+                },
+              }}
+              asChild
+            >
+              <Pressable style={s.activity}>
+                <Text style={{ color: '#60A5FA', fontWeight: '800' }}>Tiempo libre</Text>
+              </Pressable>
+            </Link>
+          )}
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+function WeekGrid({
+  dates,
+  data,
+  prefs,
+  colors,
+}: {
+  dates: Date[];
+  data: Record<string, DailyScheduleItem[]>;
+  prefs: SchedulePreferences | null;
+  colors: any;
+}) {
+  const start = Number(prefs?.dayStart.slice(0, 2) || 6);
+  const end = Number(prefs?.dayEnd.slice(0, 2) || 22);
+  const hours = Array.from({ length: Math.max(1, end - start) }, (_, i) => start + i);
+
+  return (
+    <ScrollView horizontal>
+      <View style={{ minWidth: 660 }}>
+        <View style={s.weekRow}>
+          <View style={[s.weekHour, { backgroundColor: colors.soft, borderColor: colors.border }]}>
+            <Text style={{ color: colors.text, fontWeight: '900' }}>Hora</Text>
+          </View>
+          {dates.map((d) => (
+            <View
+              key={key(d)}
+              style={[s.weekDay, { backgroundColor: colors.soft, borderColor: colors.border }]}
+            >
+              <Text style={{ color: colors.text, fontWeight: '900', textAlign: 'center' }}>
+                {d.toLocaleDateString('es-BO', { weekday: 'short' })}
+              </Text>
+              <Text style={{ color: colors.muted, textAlign: 'center' }}>{d.getDate()}</Text>
+            </View>
+          ))}
+        </View>
+        {hours.map((hour) => (
+          <View key={hour} style={s.weekRow}>
+            <View
+              style={[
+                s.weekHour,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text style={{ color: colors.text, fontWeight: '800' }}>
+                {String(hour).padStart(2, '0')}:00
+              </Text>
+            </View>
+            {dates.map((d) => {
+              const point = new Date(d);
+              point.setHours(hour, 0, 0, 0);
+              const matches = (data[key(d)] || []).filter(
+                (x) =>
+                  new Date(x.starts_at).getTime() < point.getTime() + 3600000 &&
+                  new Date(x.ends_at).getTime() > point.getTime()
+              );
+              return (
+                <View
+                  key={`${key(d)}-${hour}`}
+                  style={[s.weekDay, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                >
+                  {matches.map((x) => (
+                    <Link
+                      key={x.id}
+                      href={{ pathname: '/edit-activity/[blockId]', params: { blockId: x.id } }}
+                      asChild
+                    >
+                      <Pressable
+                        style={StyleSheet.flatten([s.weekActivity, { backgroundColor: x.color }])}
+                      >
+                        <Text numberOfLines={2} style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>
+                          {x.priority === 'critical' ? '‼ ' : x.priority === 'high' ? '↑ ' : ''}
+                          {clock(new Date(x.starts_at))} {x.title}
+                        </Text>
+                      </Pressable>
+                    </Link>
+                  ))}
+                </View>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+const s = StyleSheet.create({
+  modes: { flexDirection: 'row', gap: 8 },
+  mode: { flex: 1, padding: 11, borderRadius: 12, alignItems: 'center' },
+  nav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  today: {
+    color: '#FFF',
+    backgroundColor: palette.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 12,
+    fontWeight: '800',
+  },
+  week: { gap: 10 },
+  monthHeads: { flexDirection: 'row' },
+  monthHead: { width: '14.285%', textAlign: 'center', fontWeight: '800' },
+  month: { flexDirection: 'row', flexWrap: 'wrap' },
+  cell: { width: '14.285%', minHeight: 92, padding: 4, borderWidth: 0.5 },
+  monthItem: { paddingHorizontal: 3, paddingVertical: 2, borderRadius: 4, marginTop: 2 },
+  monthText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
+  line: { flexDirection: 'row', borderTopWidth: 1, minHeight: 62 },
+  hour: { width: 78, padding: 9, borderRightWidth: 1 },
+  activity: { flex: 1, padding: 9, gap: 4 },
+  weekRow: { flexDirection: 'row' },
+  weekHour: { width: 64, minHeight: 64, padding: 7, borderWidth: 0.5 },
+  weekDay: { width: 85, minHeight: 64, padding: 5, borderWidth: 0.5 },
+  weekActivity: { padding: 5, borderRadius: 6, marginBottom: 3 },
+});
